@@ -5,24 +5,25 @@ class KiasuSpider(scrapy.Spider):
     name = 'kiasuparent'
 
     start_urls = [
-        'https://www.kiasuparents.com/kiasu/forum/viewforum.php?f=5',
+        'https://forums.hardwarezone.com.sg/forums/pc-gaming.382/',
     ]
 
     def parse(self, response):
-        for topic_list in response.xpath('//ul[has-class("topiclist topics")]'):
-            for topic in topic_list.xpath('li/dl/dt'):
-                yield {
-                    'topic': topic.xpath('div/a/text()').get(),
-                }
-                yield response.follow(topic.xpath('div/a/@href').get(), \
-                    self.parse)
-
-        for post in response.xpath('//div[has-class("page-body-inner")]/div/div[has-class("inner")]'):
+        for topic_list in response.xpath('//div[has-class("structItem-title")]'):
+            # for topic in topic_list.xpath('li/dl/dt'):
             yield {
-                'author': post.xpath('//*[has-class("author")]/span/strong/a/text()').get(),
-                'content': post.xpath('div[has-class("postbody")]/div/div[has-class("content")]/text()').get(),
+                'topic': topic_list.xpath('a/text()').get(),
             }
+            yield response.follow(topic_list.xpath('a/@href').get(), \
+                self.parse) # go to the inside data 'content'
 
-        next_page = response.xpath('//li[has-class("arrow next")]/a/@href').get()
+        for post in response.xpath('//article[has-class("message message--post js-post js-inlineModContainer")]'):
+            yield {
+                'author': post.css('a.username::text').get(),
+                'content': post.css('div.bbWrapper::text').get(),
+            }
+            break
+
+        next_page = response.xpath('//div[has-class("block-outer")]/div/nav/div/a[has-class("pageNav-jump pageNav-jump--next")]/@href').get()
         if next_page is not None:
             yield response.follow(next_page, self.parse)
